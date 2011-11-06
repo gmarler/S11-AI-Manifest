@@ -20,7 +20,7 @@ rights reserved.
 -->
 <!DOCTYPE auto_install SYSTEM "file:///usr/share/auto_install/ai.dtd">
 <auto_install>
-  <ai_instance name="njdevsol11" auto_reboot="true">
+  <ai_instance name="dummyhost" auto_reboot="true">
 
 
     <target>
@@ -77,7 +77,7 @@ rights reserved.
           <origin name="http://10.11.7.145:18000/solaris"/>
         </publisher>
         <publisher name="sysae">
-          <!-- This is the Bloomber SYSAE specific IPS repo -->
+          <!-- This is the site specific IPS repo -->
           <origin name="http://10.11.7.145:18000/sysae"/>
         </publisher>
       </source>
@@ -102,7 +102,7 @@ rights reserved.
         <name>pkg:/network/iscsi/initiator</name>
         <name>pkg:/network/iscsi/iser</name>
 
-        <!-- Test for SYSAE IPS publisher -->
+        <!-- Test for site IPS publisher -->
         <name>pkg:/BBdirinfra</name>
         <name>pkg:/BBperl510</name>
         <name>pkg:/BBactiveperl</name>
@@ -202,7 +202,7 @@ rights reserved.
                     </property>
                     <property name='domain' type='astring'>
                         <astring_list>
-                            <value_node value='bloomberg.com'/>
+                            <value_node value='gmarler.com'/>
                         </astring_list>
                     </property>
                 </property_group>
