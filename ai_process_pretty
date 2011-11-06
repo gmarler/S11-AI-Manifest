@@ -1,0 +1,68 @@
+#!/usr/perl5/5.10.1/bin/perl
+
+use warnings;
+use strict;
+
+use XML::Twig;
+
+my $params = {
+  hostname    => 'control',
+  auto_reboot => 'false',
+
+  tgt_devpath => '/pci@0,0/pci8086,5332@1f,2/disk@0,0',
+};
+
+
+my $twig = XML::Twig->new(
+          PrettyPrint   => 'indented',
+          twig_handlers => {
+                             # Set name (hostname) and auto_reboot properties
+                             ai_instance => \&ai_instance,
+
+                             software => \&software,
+                             target   => \&target,
+                           },
+                         );
+
+$twig->parsefile( "ai1.xml" );
+
+$twig->print; # We lose extra returns here
+
+sub software
+{
+  my ($twig, $sw) = @_;  # handler params = twig and the element
+
+  my ($sd) = $sw->first_child('software_data');
+  my ($pkg) = XML::Twig::Elt->new('name',"pkg:/BBdummypkg");
+  $pkg->paste('last_child', $sd);
+
+  # TODO: Delete iSCSI comment and pkgs
+}
+
+sub ai_instance
+{
+  my ($twig, $aii) = @_;  # handler params = twig and the element
+
+  $aii->set_att( 'auto_reboot' => $params->{'auto_reboot'},
+                 'name'        => $params->{'hostname'} );
+}
+
+sub target
+{
+  my ($twig, $tgt) = @_;  # handler params = twig and the element
+
+  my ($td,$disk,$dn);
+
+  # look for disk name element
+  $td = $tgt->first_child('target_device');
+  if ($td) {
+    $disk = $td->first_child('disk');
+  }
+  if ($disk) {
+    $dn = $disk->first_child('disk_name');
+  }
+  if ($dn) {
+    $dn->set_att( 'name' => $params->{'tgt_devpath'},
+                );
+  }
+}

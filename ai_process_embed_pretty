@@ -1,0 +1,165 @@
+#!/usr/perl5/5.10.1/bin/perl
+
+use warnings;
+use strict;
+
+use XML::Twig;
+
+my $params = {
+  hostname    => 'control',
+  auto_reboot => 'false',
+
+  tgt_devpath => '/pci@0,0/pci8086,5332@1f,2/disk@0,0',
+
+  root_acct_pw   => 'dimwit',
+  root_acct_type => 'normal',
+
+  timezone       => 'US/Eastern',
+
+  term_type      => 'vt100',
+  keymap_layout  => 'US-English',
+
+  net_phys_nwam  => 'false',
+  net_phys_def   => 'true',
+};
+
+
+my $twig = XML::Twig->new(
+  # Probably  not needed
+  #keep_spaces         => 1,
+  PrettyPrint         => 'indented',
+  # Make it possible to manipulate pre-existing comments
+  comments            => 'process',
+  twig_handlers => {
+                     # Delete first CDDL comment
+                     '#COMMENT' => \&erase_first_comment,
+
+                     # Set name (hostname) and auto_reboot properties
+                     ai_instance => \&ai_instance,
+
+                     # TODO Set OS rev explicitly via entire pkg version
+                     software => \&software,
+                     target   => \&target,
+
+                     # TODO update embedded SC manifest
+                     sc_embedded_manifest => \&sc_embedded_manifest, 
+                   },
+);
+
+$twig->parsefile( "ai1_embedded.xml" );
+
+$twig->print; # We lose extra returns here
+
+sub erase_first_comment
+{
+  my ($twig, $comm) = @_;  # handler params = twig and the element
+
+  if ($comm->comment =~ /CDDL\sHEADER\sSTART/) {
+    $comm->cut;
+  }
+}
+
+sub software
+{
+  my ($twig, $sw) = @_;  # handler params = twig and the element
+
+  my ($sd) = $sw->first_child('software_data');
+  my ($pkg) = XML::Twig::Elt->new('name',"pkg:/BBdummypkg");
+  $pkg->paste('last_child', $sd);
+
+  # TODO: Delete iSCSI comment and pkgs
+}
+
+sub ai_instance
+{
+  my ($twig, $aii) = @_;  # handler params = twig and the element
+
+  $aii->set_att( 'auto_reboot' => $params->{'auto_reboot'},
+                 'name'        => $params->{'hostname'} );
+}
+
+sub target
+{
+  my ($twig, $tgt) = @_;  # handler params = twig and the element
+
+  my ($td,$disk,$dn);
+
+  # look for disk name element
+  $td = $tgt->first_child('target_device');
+  if ($td) {
+    $disk = $td->first_child('disk');
+  }
+  if ($disk) {
+    $dn = $disk->first_child('disk_name');
+  }
+  if ($dn) {
+    $dn->set_att( 'name' => $params->{'tgt_devpath'},
+                );
+  }
+}
+
+sub sc_embedded_manifest
+{
+  my ($twig, $eman) = @_;  # handler params = twig and the element
+
+  my ($c) = $eman->first_child->comment;
+
+  # Rip off the comment - we'll manipulate and reinsert it as we go
+  $eman->first_child->cut;
+
+  # Strip off leading space so the comment can be considered as valid XML
+  $c =~ s/^\s+//;
+
+  my ($newtwig) = XML::Twig->new(
+    PrettyPrint         => 'indented',
+    twig_handlers       =>
+    { 'service[@name="system/install/config"]' => \&install_config_svc,
+      'service[@name="system/console-login"]'  => \&console_svc,
+      'service[@name="network/physical"]'      => \&net_phys_svc,
+      'service[@name="network/install"]'       => \&net_install_svc,
+      'service[@name="network/dns/install"]'   => \&net_dns_install_svc,
+    }
+  )->parse($c);
+
+  # TODO this is temporary - merge it back in
+  $newtwig->print;
+}
+
+sub install_config_svc
+{
+  my ($twig, $svc) = @_;  # handler params = twig and the element
+
+  my ($user_acct,$root_pw,$root_atype,$other_tz,$other_hostname);
+
+  # Rip out the "default user account" for jack
+  ($user_acct) = $svc->get_xpath(
+    qq{instance/property_group[\@name="user_account"]} );
+
+  $user_acct->cut;
+
+  # setup the root account properly
+  ($root_pw) = $svc->get_xpath(
+    qq{instance/property_group[\@name="root_account"]/propval[\@name="password"]} );
+  $root_pw->set_att( value => $params->{'root_acct_pw'} );
+  ($root_atype) = $svc->get_xpath(
+    qq{instance/property_group[\@name="root_account"]/propval[\@name="type"]} );
+  $root_atype->set_att( value => $params->{'root_acct_type'} );
+
+  # setup the "other sc params"
+  ($other_tz) = $svc->get_xpath(
+    qq{instance/property_group[\@name="other_sc_params"]/propval[\@name="timezone"]} );
+  $other_tz->set_att( value => $params->{'timezone'} );
+  ($other_hostname) = $svc->get_xpath(
+    qq{instance/property_group[\@name="other_sc_params"]/propval[\@name="hostname"]} );
+  $other_hostname->set_att( value => $params->{'hostname'} );
+}
+
+sub console_svc
+{
+  my ($twig, $svc) = @_;  # handler params = twig and the element
+
+  ($term_type) = $svc->get_xpath(
+    qq{instance/property_group[\@name="ttymon"]/propval[\@name="terminal_type"]} );
+
+  $term_type->set_att( value => $params->{'term_type'} );
+}

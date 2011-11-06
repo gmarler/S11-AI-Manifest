@@ -1,0 +1,12 @@
+#!/usr/perl5/5.10.1/bin/perl
+
+use warnings;
+use strict;
+
+use XML::Twig;
+
+my $twig = XML::Twig->new();
+
+$twig->parsefile( "ai1.xml" );
+
+$twig->print; # We lose extra returns here

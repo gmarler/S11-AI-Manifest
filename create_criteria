@@ -1,0 +1,19 @@
+#!/usr/perl5/5.10.1/bin/perl
+                         
+use warnings;            
+use strict;              
+                         
+use XML::Twig;   
+
+my $twig = XML::Twig->new(
+PrettyPrint         => 'indented',
+);
+
+my $c = XML::Twig::Elt->new( value => "00:03:ba:2f:be:d8" )->
+                        wrap_in( criteria => { name => "mac" } )->
+                        wrap_in('ai_criteria_manifest');
+
+# Use this element to create the twig
+$twig->set_root($c);
+
+$twig->print;

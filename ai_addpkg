@@ -1,0 +1,26 @@
+#!/usr/perl5/5.10.1/bin/perl
+
+use warnings;
+use strict;
+
+use XML::Twig;
+
+my $twig = XML::Twig->new(
+          twig_handlers => {
+                             software => \&software,
+                             # target   => \&target,
+                           }
+                         );
+
+$twig->parsefile( "ai1.xml" );
+
+$twig->print; # We lose extra returns here
+
+sub software
+{
+  my ($twig, $sw) = @_;  # handler params = twig and the element
+
+  my ($sd) = $sw->first_child('software_data');
+  my ($pkg) = XML::Twig::Elt->new('name',"pkg:/BBdummypkg");
+  $pkg->paste('last_child', $sd);
+}
