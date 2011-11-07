@@ -6,10 +6,10 @@ use strict;
 use XML::Twig;
 
 my $params = {
-  hostname    => 'control',
-  auto_reboot => 'false',
+  hostname       => 'control',
+  auto_reboot    => 'false',
 
-  tgt_devpath => '/pci@0,0/pci8086,5332@1f,2/disk@0,0',
+  tgt_devpath    => '/pci@0,0/pci8086,5332@1f,2/disk@0,0',
 
   root_acct_pw   => 'dimwit',
   root_acct_type => 'normal',
@@ -20,13 +20,19 @@ my $params = {
   keymap_layout  => 'US-English',
 
   net_phys_nwam  => 'false',
-  net_phys_def   => 'true',
+  net_phys_dflt  => 'true',
+
+  dns_domain     => 'gmarler.com',
+  dns_servers    => [ q{160.43.12.249}, q{160.43.8.240}, q{160.43.8.220} ],
 };
 
 
 my $twig = XML::Twig->new(
   # Probably  not needed
   #keep_spaces         => 1,
+  # TODO May need to set up ability to keep attributes in same order as
+  #      originally provided
+  #
   PrettyPrint         => 'indented',
   # Make it possible to manipulate pre-existing comments
   comments            => 'process',
@@ -158,8 +164,31 @@ sub console_svc
 {
   my ($twig, $svc) = @_;  # handler params = twig and the element
 
+  my ($term_type);
+
   ($term_type) = $svc->get_xpath(
-    qq{instance/property_group[\@name="ttymon"]/propval[\@name="terminal_type"]} );
+    qq{property_group[\@name="ttymon"]/propval[\@name="terminal_type"]} );
 
   $term_type->set_att( value => $params->{'term_type'} );
+}
+
+sub net_phys_svc
+{
+  my ($twig, $svc) = @_;  # handler params = twig and the element
+
+  my ($nwam,$dflt);
+
+  ($nwam) = $svc->get_xpath( qq{instance[\@name="nwam"]} );
+  ($dflt) = $svc->get_xpath( qq{instance[\@name="default"]} );
+
+  $nwam->set_att( enabled => $params->{'net_phys_nwam'} );
+  $dflt->set_att( enabled => $params->{'net_phys_dflt'} );
+}
+
+sub net_install_svc
+{
+}
+
+sub net_dns_install_svc
+{
 }
