@@ -22,6 +22,11 @@ my $params = {
   net_phys_nwam  => 'false',
   net_phys_dflt  => 'true',
 
+  net_ipv4_name  => 'nxge0/v4',
+  net_ipv4_atype => 'static',
+  net_ipv4_addr  => '192.168.1.180/24',
+  net_ipv4_gw    => '192.168.1.1',
+
   dns_domain     => 'gmarler.com',
   dns_servers    => [ q{160.43.12.249}, q{160.43.8.240}, q{160.43.8.220} ],
 };
@@ -187,6 +192,24 @@ sub net_phys_svc
 
 sub net_install_svc
 {
+  my ($twig, $svc) = @_;  # handler params = twig and the element
+
+  my ($ipv4_pg,$name,$atype,$addr,$gw);
+
+  ($ipv4_pg) = $svc->get_xpath(
+    qq{instance[\@name='default']/property_group[\@name='install_ipv4_interface']}
+    );
+
+  ($name)  = $ipv4_pg->get_xpath( qq{propval[\@name='name']} );
+  ($atype) = $ipv4_pg->get_xpath( qq{propval[\@name='address_type']} );
+  ($addr)  = $ipv4_pg->get_xpath( qq{propval[\@name='static_address']} );
+  ($gw)    = $ipv4_pg->get_xpath( qq{propval[\@name='default_route']} );
+
+  $name->set_att( value => $params->{'net_ipv4_name'} );
+  $atype->set_att( value => $params->{'net_ipv4_atype'} );
+  $addr->set_att( value => $params->{'net_ipv4_addr'} );
+  $gw->set_att( value => $params->{'net_ipv4_gw'} );
+
 }
 
 sub net_dns_install_svc
