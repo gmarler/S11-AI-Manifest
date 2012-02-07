@@ -6,11 +6,10 @@ use strict;
 use XML::Twig;
 
 my $twig = XML::Twig->new(
-          PrettyPrint   => 'indented',
           twig_handlers => {
                              software => \&software,
                              # target   => \&target,
-                           },
+                           }
                          );
 
 $twig->parsefile( "ai1.xml" );
